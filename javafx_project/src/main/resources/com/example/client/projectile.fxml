@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Group?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.shape.Line?>
+<?import javafx.scene.shape.Polyline?>
+
+<AnchorPane minHeight="-Infinity" minWidth="-Infinity" prefHeight="20.0" prefWidth="48.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Group />
+      <Line endX="56.646446228027344" endY="0.899993896484375" layoutX="-15.0" layoutY="9.0" startX="27.292896270751953" startY="0.899993896484375" />
+      <Polyline fill="#1d5c80" layoutX="88.0" layoutY="26.0" points="-50.00000762939453, -21.200000762939453, -40.307106018066406, -15.399993896484375, -50.00000762939453, -11.000003814697266, -50.00000762939453, -21.200000762939453" strokeType="INSIDE" />
+   </children>
+</AnchorPane>
