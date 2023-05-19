@@ -1,5 +1,6 @@
 package server;
 
+import DBconnection.DataBase;
 import com.google.gson.Gson;
 import entity.*;
 
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 public class Server {
     private static final int port = 8080;
+    DataBase db;
     private final List<Socket> clientSockets = new ArrayList<>(4);
     private final List<DataInputStream> clientSocketsIn = new ArrayList<>(4);
     private final List<DataOutputStream> clientSocketsOut = new ArrayList<>(4);
@@ -59,8 +61,13 @@ public class Server {
             }
         }
     }
+    public void Begin(DataBase db) {
+        this.db = db;
 
+    }
     public void start() throws InterruptedException {
+        DataBase db = new DataBase();
+        Begin(db);
         Thread acceptConn = new Thread(() -> {
             while (clientSockets.size() < 4) {
                 try {
@@ -71,6 +78,7 @@ public class Server {
                     clientSockets.add(socket);
                     DataOutputStream out = new DataOutputStream(socket.getOutputStream());
                     DataInputStream in = new DataInputStream(socket.getInputStream());
+
                     clientSocketsIn.add(in);
                     clientSocketsOut.add(out);
                     arrows.add(new Arrow(535));
@@ -78,13 +86,13 @@ public class Server {
                     String name = in.readUTF();
                     playersList.players().add(validateName(name));
 
-                    out.writeUTF(new Gson().toJson(new Action(Action.Actions.ADD_PLAYERS)));
+                    out.writeUTF(new Gson().toJson(new Stage(Stage.Stages.ADD_PLAYERS)));
                     out.flush();
 
                     out.writeUTF(new Gson().toJson(playersList));
                     out.flush();
 
-                    broadcast(new Action(Action.Actions.ADD_PLAYER));
+                    broadcast(new Stage(Stage.Stages.ADD_PLAYER));
                     int num = clientSockets.size() - 1;
                     listenSocket(num);
                 } catch (IOException ignored) {
@@ -108,13 +116,13 @@ public class Server {
                     try {
                         if (!Objects.equals(getWinner(), "")) {
                             resetData();
-                            broadcast(new Action(Action.Actions.UPDATE));
-                            broadcast(new Action(Action.Actions.END_GAME));
+                            broadcast(new Stage(Stage.Stages.UPDATE));
+                            broadcast(new Stage(Stage.Stages.END_GAME));
                             isStopped.set(true);
                             startConfirmCount.set(0);
                             continue;
                         }
-                        broadcast(new Action(Action.Actions.UPDATE));
+                        broadcast(new Stage(Stage.Stages.UPDATE));
                         Thread.sleep(30);
                     } catch (IOException | InterruptedException e) {
                         throw new RuntimeException(e);
@@ -138,7 +146,7 @@ public class Server {
 
     private String getWinner() {
         for (int i = 0; i < 4; i++) {
-            if (scoreCounter[i] >= 3) {
+            if (scoreCounter[i] >= 2) {
                 winner = playersList.players().get(i);
             }
         }
@@ -153,8 +161,8 @@ public class Server {
         }
         targets.set(0, new Target(5, 20, 446));
         targets.set(1, new Target(10, 10, 500));
-        for(var projectile : arrows) {
-            projectile.rollback();
+        for(var arrow : arrows) {
+            arrow.rollback();
         }
     }
 
@@ -193,16 +201,16 @@ public class Server {
         }).start();
     }
 
-    private void broadcast(Action action) throws IOException {
+    private void broadcast(Stage stage) throws IOException {
 
-        switch (action.action()) {
+        switch (stage.action()) {
             case ADD_PLAYER -> {
                 for (int i = 0; i < clientSocketsOut.size() - 1 ; i++) {
                     int size = playersList.players().size();
                     PlayersList temp = new PlayersList();
                     temp.players().add(playersList.players().get(size - 1));
-
-                    clientSocketsOut.get(i).writeUTF(new Gson().toJson(action));
+                    db.addPlayer();
+                    clientSocketsOut.get(i).writeUTF(new Gson().toJson(stage));
                     clientSocketsOut.get(i).flush();
 
                     clientSocketsOut.get(i).writeUTF(new Gson().toJson(temp));
@@ -211,7 +219,7 @@ public class Server {
             }
             case END_GAME -> {
                 for(var out : clientSocketsOut) {
-                    out.writeUTF(new Gson().toJson(action));
+                    out.writeUTF(new Gson().toJson(stage));
                     out.flush();
 
                     out.writeUTF(new Gson().toJson(winner));
@@ -247,7 +255,7 @@ public class Server {
                 }
 
                 for(var out : clientSocketsOut) {
-                    out.writeUTF(new Gson().toJson(action));
+                    out.writeUTF(new Gson().toJson(stage));
                     out.flush();
 
                     out.writeUTF(new Gson().toJson(update));

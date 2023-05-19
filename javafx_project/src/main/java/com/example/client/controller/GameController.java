@@ -1,13 +1,12 @@
 package com.example.client.controller;
 
-import com.example.client.entity.Action;
+import com.example.client.entity.Stage;
 import com.example.client.entity.PlayersList;
 import com.example.client.entity.Update;
 import com.example.client.service.ShapesLoader;
 import com.google.gson.Gson;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.Group;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
@@ -17,7 +16,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.Line;
 import javafx.scene.shape.Polyline;
 import javafx.stage.Window;
 
@@ -27,7 +25,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class GameController {
     @FXML
@@ -133,8 +130,8 @@ public class GameController {
             boolean clientPlayerAdded = false;
             while (true) {
                 try {
-                    Action action = new Gson().fromJson(in.readUTF(), Action.class);
-                    switch (action.action()) {
+                    Stage stage = new Gson().fromJson(in.readUTF(), Stage.class);
+                    switch (stage.action()) {
                         case ADD_PLAYERS -> {
                             String data = in.readUTF();
                             PlayersList list = new Gson().fromJson(data, PlayersList.class);
