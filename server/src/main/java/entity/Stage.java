@@ -6,6 +6,8 @@ public class Stage {
         ADD_PLAYER,
         UPDATE,
         END_GAME,
+        SCORE,
+        WINNERS
     }
 
     public Stages stage;

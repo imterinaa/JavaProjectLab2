@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,10 +30,11 @@ public class Server {
     private final PlayersList playersList = new PlayersList();
     private final ServerSocket srv;
     private String winner = "";
+    ArrayList<Pair> listofpair = new ArrayList<>();
     private final AtomicBoolean isStopped = new AtomicBoolean(false);
     private final AtomicBoolean stopAccept = new AtomicBoolean(false);
     private final AtomicInteger startConfirmCount = new AtomicInteger(0);
-
+    Pair p = new Pair(0,winner);
     public Server() throws IOException {
         srv = new ServerSocket(port);
         targets.add(new Target(5, 30, 446));
@@ -85,7 +87,7 @@ public class Server {
 
                     String name = in.readUTF();
                     playersList.players().add(validateName(name));
-
+                    db.addPlayer(name);
                     out.writeUTF(new Gson().toJson(new Stage(Stage.Stages.ADD_PLAYERS)));
                     out.flush();
 
@@ -148,6 +150,8 @@ public class Server {
         for (int i = 0; i < 4; i++) {
             if (scoreCounter[i] >= 2) {
                 winner = playersList.players().get(i);
+
+
             }
         }
         return winner;
@@ -168,7 +172,7 @@ public class Server {
 
     private void listenSocket(int num) {
         DataInputStream in = clientSocketsIn.get(num);
-
+        DataOutputStream out = clientSocketsOut.get(num);
         new Thread(() -> {
             while (true) {
                 try {
@@ -193,6 +197,15 @@ public class Server {
                                 isStopped.set(false);
                             }
                         }
+                        case "get_winners" -> {
+                            Stage stage = new Stage(Stage.Stages.SCORE);
+
+                            out.writeUTF(new Gson().toJson(stage));
+                            out.flush();
+
+                            out.writeUTF(new Gson().toJson(db.getAllPlayers()));
+                            out.flush();
+                        }
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -209,7 +222,6 @@ public class Server {
                     int size = playersList.players().size();
                     PlayersList temp = new PlayersList();
                     temp.players().add(playersList.players().get(size - 1));
-                    db.addPlayer();
                     clientSocketsOut.get(i).writeUTF(new Gson().toJson(stage));
                     clientSocketsOut.get(i).flush();
 
@@ -218,9 +230,41 @@ public class Server {
                 }
             }
             case END_GAME -> {
+                if (!listofpair.isEmpty()) {
+                    Iterator<Pair> iterator = listofpair.iterator();
+                    while (iterator.hasNext()) {
+                        Pair pair = iterator.next();
+                        if (pair.getString().equals(winner)) {
+                            pair.SetInt();
+                            pair.SetString(winner);
+                        }
+                        else {
+                            listofpair.add(new Pair(1, winner));
+                        }
+                    }
+
+                } else {
+                    listofpair.add(new Pair(1, winner));
+                }
+
+                System.out.println("privet");
+                //listofpair.add(p);
+                db.setPlayerWins(listofpair.get(listofpair.size()-1));
                 for(var out : clientSocketsOut) {
                     out.writeUTF(new Gson().toJson(stage));
                     out.flush();
+//                    for (Pair pair : listofpair) {
+//                        if (pair.getString().equals(winner)) {
+//                            pair.SetInt();
+//                            System.out.println(pair.getInt());
+//                            db.setPlayerWins(pair);
+//                            break;
+//                        }
+//                        else {listofpair.add(new Pair(1,winner));
+//                            db.setPlayerWins(listofpair.get(listofpair.size()-1));
+//                            System.out.println(pair.getInt());
+//                            break;
+//                        }}
 
                     out.writeUTF(new Gson().toJson(winner));
                     out.flush();
@@ -259,6 +303,14 @@ public class Server {
                     out.flush();
 
                     out.writeUTF(new Gson().toJson(update));
+                    out.flush();
+                }
+            }
+            case SCORE ->{
+                for(var out : clientSocketsOut) {
+                    Gson gson = new Gson();
+                    String json = gson.toJson(db.getAllPlayers());
+                    out.writeUTF(new Gson().toJson(json));
                     out.flush();
                 }
             }

@@ -1,22 +1,26 @@
 package com.example.client.controller;
 
-import com.example.client.entity.Stage;
+import com.example.client.entity.Pair;
+import com.example.client.entity.MyStage;
 import com.example.client.entity.PlayersList;
 import com.example.client.entity.Update;
 import com.example.client.service.ShapesLoader;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polyline;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.io.DataInputStream;
@@ -110,6 +114,12 @@ public class GameController {
     }
 
     @FXML
+    protected void getLeaders()throws IOException {
+        out.writeUTF("get_winners");
+        out.flush();
+    }
+
+    @FXML
     protected void onOkButtonClick() throws IOException {
         winnerPane.setVisible(false);
     }
@@ -130,11 +140,11 @@ public class GameController {
             boolean clientPlayerAdded = false;
             while (true) {
                 try {
-                    Stage stage = new Gson().fromJson(in.readUTF(), Stage.class);
-                    switch (stage.action()) {
+                    MyStage myStage = new Gson().fromJson(in.readUTF(), MyStage.class);
+                    switch (myStage.action()) {
                         case ADD_PLAYERS -> {
                             String data = in.readUTF();
-                            PlayersList list = new Gson().fromJson(data, PlayersList.class);
+                             PlayersList list = new Gson().fromJson(data, PlayersList.class);
                             for (int i = 0; i < list.players().size() - 1; i++) {
                                 HBox hBox = ShapesLoader.loadHBox("player-state.fxml");
                                 Label label = (Label) hBox.getChildren().get(1);
@@ -214,6 +224,46 @@ public class GameController {
 
                             }
                         }
+                        case SCORE ->{
+                            String data = in.readUTF();
+                            Gson gson = new Gson();
+                            ArrayList<Pair> arrayList = gson.fromJson(data, new TypeToken<ArrayList<Pair>>(){}.getType());
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    TableView tableView = new TableView();
+
+                                    TableColumn<Pair, String> column1 =
+                                            new TableColumn<>("Имя");
+
+                                    column1.setCellValueFactory(
+                                            new PropertyValueFactory<>("s"));
+
+
+                                    TableColumn<Pair, String> column2 =
+                                            new TableColumn<>("Победы");
+
+                                    column2.setCellValueFactory(
+                                            new PropertyValueFactory<>("i"));
+
+                                    tableView.getColumns().add(column1);
+                                    tableView.getColumns().add(column2);
+
+                                    arrayList.forEach(tableView.getItems()::add);
+
+                                    VBox vbox = new VBox(tableView);
+                                    Scene scene = new Scene(vbox);
+                                    Stage myStage = new Stage();
+                                    myStage.setScene(scene);
+                                    myStage.setTitle("Таблица лидеров");
+                                    myStage.show();
+                                }
+                            });
+                            //ArrayList<Pair> p = new Gson().fromJson(data, ArrayList.class);
+                            ObservableList<Pair> observableList = FXCollections.observableArrayList();
+                            System.out.println(arrayList);
+
+                        }
                     }
                 } catch (IOException ignored) {
                 }
@@ -222,4 +272,5 @@ public class GameController {
 
         signUpPane.setVisible(false);
     }
+
 }
